@@ -1,18 +1,20 @@
-// Copyright (c) 2015-2016 The Bitcoin Core developers
+// Copyright (c) 2015-2017 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #ifndef BITCOIN_TEST_TEST_BITCOIN_H
 #define BITCOIN_TEST_TEST_BITCOIN_H
 
-#include "chainparamsbase.h"
-#include "fs.h"
-#include "key.h"
-#include "pubkey.h"
-#include "random.h"
-#include "scheduler.h"
-#include "txdb.h"
-#include "txmempool.h"
+#include <chainparamsbase.h>
+#include <fs.h>
+#include <key.h>
+#include <pubkey.h>
+#include <random.h>
+#include <scheduler.h>
+#include <txdb.h>
+#include <txmempool.h>
+
+#include <memory>
 
 #include <boost/thread.hpp>
 
@@ -49,9 +51,14 @@ struct BasicTestingSetup {
  * Included are data directory, coins database, script check threads setup.
  */
 class CConnman;
+class CNode;
+struct CConnmanTest {
+    static void AddNode(CNode& node);
+    static void ClearNodes();
+};
+
 class PeerLogicValidation;
 struct TestingSetup: public BasicTestingSetup {
-    CCoinsViewDB *pcoinsdbview;
     fs::path pathTemp;
     boost::thread_group threadGroup;
     CConnman* connman;
@@ -80,7 +87,7 @@ struct TestChain100Setup : public TestingSetup {
 
     ~TestChain100Setup();
 
-    std::vector<CTransaction> coinbaseTxns; // For convenience, coinbase transactions
+    std::vector<CTransactionRef> m_coinbase_txns; // For convenience, coinbase transactions
     CKey coinbaseKey; // private/public key needed to spend coinbase transactions
 };
 
@@ -99,9 +106,9 @@ struct TestMemPoolEntryHelper
     TestMemPoolEntryHelper() :
         nFee(0), nTime(0), nHeight(1),
         spendsCoinbase(false), sigOpCost(4) { }
-    
-    CTxMemPoolEntry FromTx(const CMutableTransaction &tx);
-    CTxMemPoolEntry FromTx(const CTransaction &tx);
+
+    CTxMemPoolEntry FromTx(const CMutableTransaction& tx);
+    CTxMemPoolEntry FromTx(const CTransactionRef& tx);
 
     // Change the default value
     TestMemPoolEntryHelper &Fee(CAmount _fee) { nFee = _fee; return *this; }
@@ -110,4 +117,10 @@ struct TestMemPoolEntryHelper
     TestMemPoolEntryHelper &SpendsCoinbase(bool _flag) { spendsCoinbase = _flag; return *this; }
     TestMemPoolEntryHelper &SigOpsCost(unsigned int _sigopsCost) { sigOpCost = _sigopsCost; return *this; }
 };
+
+CBlock getBlock13b8a();
+
+// define an implicit conversion here so that uint256 may be used directly in BOOST_CHECK_*
+std::ostream& operator<<(std::ostream& os, const uint256& num);
+
 #endif
